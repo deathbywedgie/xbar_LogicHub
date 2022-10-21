@@ -71,82 +71,6 @@ class Reusable:
     # Class for static reusable methods, mainly just to group these together to better organize for readability
 
     @staticmethod
-    def run_cli_command(command: str or bytes or list or tuple, timeout: int = 30, test: bool = True, capture_output: bool = True):
-        """
-        Reusable method to standardize CLI calls
-
-        :param command: Command to execute (can be string or list)
-        :param timeout: Timeout in seconds (default 30)
-        :type timeout: int or None
-        :param bool test: Whether to test that the command completed successfully (default True)
-        :param bool capture_output: Whether to capture the output or allow it to pass to the terminal. (Usually True, but False for things like prompting for the sudo password)
-        :return:
-        """
-
-        def _validate_command(cmd: str or bytes or list or tuple):
-            """
-            Verify command format. Accepts string, bytes, list of strings, or tuple of strings,
-            and returns a formatted command ready for the subprocess.run() method
-            :param cmd: Desired shell command in any supported format
-            :return formatted_cmd: List of split command parts
-            """
-            if type(cmd) is bytes:
-                # convert to a string; further convert as a string in the next step
-                cmd = cmd.decode('utf-8')
-            if type(cmd) is str:
-                cmd = cmd.strip()
-            if not cmd:
-                raise ValueError("No command provided")
-            elif "|" in cmd or (isinstance(cmd, (list, tuple)) and "|" in ','.join(cmd)):
-                raise ValueError("Pipe commands not supported at this time")
-            elif isinstance(cmd, (list, tuple)):
-                # If the command is already a list or tuple, then assume it is already ready to be used
-                return cmd
-            # At this point the command must be a string format to continue.
-            if type(cmd) is str:
-                # Use shlex to split into a list for subprocess input
-                formatted_cmd = shlex.split(cmd.strip())
-                if not formatted_cmd or type(formatted_cmd) is not list:
-                    raise ValueError("Command failed to parse into a valid list of parts")
-            else:
-                raise TypeError(f"Command validation failed: type {type(cmd).__name} not supported")
-            return formatted_cmd
-
-        # Also tried these, but settled on subprocess.run:
-        # subprocess.call("command1")
-        # subprocess.call(["command1", "arg1", "arg2"])
-        # or
-        # import os
-        # os.popen("full command string")
-        if isinstance(timeout, Number) and timeout <= 0:
-            timeout = None
-        log.debug(f"Executing command: {command}")
-        _cmd = _validate_command(command)
-        _result = subprocess.run(_cmd, capture_output=capture_output, universal_newlines=True, timeout=timeout)
-        if test:
-            _result.check_returncode()
-        return _result
-
-    @staticmethod
-    def run_shell_command_with_pipes(command, print_result=True, indent: int = 5):
-        """Simple version for now. May revisit later to improve it."""
-        log.debug(f"Executing command: {command}")
-        _output = subprocess.getoutput(command)
-        if print_result:
-            if indent > 0:
-                for _line in _output.split('\n'):
-                    print(" " * indent + _line)
-            else:
-                print(_output)
-        return _output
-
-    @staticmethod
-    def do_prompt_for_sudo():
-        # If a sudo session is not already active, auth for sudo and start the clock.
-        # This function can be called as many times as desired to and will not cause re-prompting unless the timeout has been exceeded.
-        _ = Reusable.run_cli_command('sudo -v -p "sudo password: "', timeout=-1, test=True, capture_output=False)
-
-    @staticmethod
     def convert_boolean(_var):
         if type(_var) is str:
             _var2 = _var.strip().lower()
@@ -204,48 +128,9 @@ class Reusable:
         return os.path.join(tempfile.gettempdir(), _temp_file_name)
 
     @staticmethod
-    def write_text_to_temp_file(text_str, file_ext, file_name_prefix=None):
-        _temp_file = Reusable.generate_temp_file_path(file_ext=file_ext, prefix=file_name_prefix)
-        with open(_temp_file, 'w') as _f:
-            _f.write(text_str)
-        return os.path.abspath(_temp_file)
-
-    @staticmethod
     def sort_dict_by_values(_input_str, reverse=False):
         # return sorted(_input_str.items(), key=lambda x: x[1], reverse=reverse)
         return {k: v for k, v in sorted(_input_str.items(), key=lambda x: x[1], reverse=reverse)}
-
-    @staticmethod
-    def time_epoch_to_str(time_number, utc=False, time_format=None):
-        _time = float(time_number)
-        # If the number is in milliseconds, convert to seconds
-        if len(str(int(_time))) > 10:
-            _time = _time / 1000
-        time_format = time_format if time_format else '%Y-%m-%d %I:%M:%S %p %Z'
-        time_func = datetime.utcfromtimestamp if utc is True else datetime.fromtimestamp
-        return time_func(_time).strftime(time_format)
-
-    @staticmethod
-    def flatten_list(var_list):
-        if not isinstance(var_list, (list, tuple)):
-            return var_list
-        else:
-            return [r for v in var_list for r in v]
-
-    @staticmethod
-    def sort_list_treating_numbers_by_value(var_list: list):
-        """
-        borrowed and modified from here:
-        https://stackoverflow.com/questions/67918688/sorting-a-list-of-strings-based-on-numeric-order-of-numeric-part
-        """
-        def build_key():
-            def key(x):
-                return [(j, int(i)) if i != '' else (j, i)
-                        for i, j in rx.findall(x)]
-            rx = re.compile(r'(\d+)|(.)')
-            return key
-
-        return sorted(var_list, key=build_key())
 
 
 # ToDo REVISIT
@@ -269,13 +154,6 @@ class Icons:
 
     def __init__(self, repo_path):
         self.image_path = os.path.join(repo_path, "supporting_files/images")
-
-    def __image_to_base64_string(self, file_name):
-        file_path = os.path.join(self.image_path, file_name)
-        with open(file_path, "rb") as image_file:
-            image_bytes = image_file.read()
-            image_b64 = base64.b64encode(image_bytes)
-        return image_b64.decode("unicode_escape")
 
 
 @dataclass_json
