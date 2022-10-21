@@ -447,7 +447,8 @@ class Actions:
         self.status = ""
         self.menu_output = ""
 
-        self.url_jira = r"https://logichub.atlassian.net/browse/{}"
+        # ToDo FIX THIS: Hostname should be passed through the ini file
+        self.url_jira = r"https://projet.atlassian.net/browse/{}"
         self.url_uws = r"https://www.ultimatewindowssecurity.com/securitylog/encyclopedia/event.aspx?eventID={}"
         self.url_nmap = r"https://nmap.org/nsedoc/scripts/{}"
 
