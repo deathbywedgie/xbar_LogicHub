@@ -591,10 +591,6 @@ class Actions:
         self.make_action("Upgrade Command with Backup Script (static)",
                          self.logichub_upgrade_command_static_with_backup_script, alternate=True)
 
-        # ToDo DELETE THIS
-        self.print_in_menu(f"---")
-        self.print_in_menu(f"NEW VERSION")
-
     def add_menu_section(self, label, menu_depth=0, text_color=None):
         """
         Print a divider line as needed by the plugin menu, then print a label for the new section
