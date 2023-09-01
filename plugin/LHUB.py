@@ -549,7 +549,7 @@ class Actions:
             output = f.read()
         self.write_clipboard(output)
 
-    def pretty_print_sql(self, input_str, wrap_after=0):
+    def make_pretty_print_sql(self, input_str, wrap_after=0):
         """
         Reusable method to "pretty print" SQL
 
@@ -597,13 +597,6 @@ class Actions:
     #   LogicHub
     ############################################################################
 
-    def _lh_read_clipboard_for_table_name(self):
-        _input_str = self.read_clipboard()
-        if re.search(r'>*?\s', _input_str):
-            self.display_notification_error("Invalid input; table name cannot contain spaces")
-            exit(1)
-        return _input_str
-
     def sql_pretty_print(self, **kwargs):
         """
         Pretty Print SQL
@@ -611,7 +604,7 @@ class Actions:
         :return:
         """
         _input_str = self.read_clipboard()
-        _output = self.pretty_print_sql(_input_str, **kwargs)
+        _output = self.make_pretty_print_sql(_input_str, **kwargs)
         self.write_clipboard(_output)
 
     def sql_pretty_print_sql(self):
