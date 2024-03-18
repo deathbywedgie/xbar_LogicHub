@@ -165,17 +165,8 @@ class ConfigMain:
     # Local user ID. If not provided, user will be drawn from USER environment variable
     local_user: str
 
-    # Default SSH username. If not provided, user will be drawn from USER environment variable
-    ssh_user: str
-
-    # SSH keys are assumed to be located in ~/.ssh unless a full path is provided
-    ssh_key: str
-
     # Return either "Dark" or "Light" for the OS theme
     os_theme: str
-
-    # Usually "lo0"
-    default_loopback_interface: str
 
     # Define how this plugin should appear in the status bar
     # Options: logo, text, both, custom
@@ -198,33 +189,14 @@ class ConfigMain:
     # Show debug output
     debug_output_enabled: bool
 
-    # default Jira prefix (project name)
-    jira_default_prefix: str
-
-
-@dataclass_json
-@dataclass
-class ConfigMenuNetworking:
-    configs: dict
-
-
-# ToDo Finish this new feature
-@dataclass_json
-@dataclass
-class ConfigMenuCustom:
-    def __post_init__(self):
-        pass
-
 
 @dataclass_json
 @dataclass
 class Config:
     main: ConfigMain = None
-    menu_custom: ConfigMenuCustom = None
-    menu_networking: ConfigMenuNetworking = None
 
     def __post_init__(self):
-        config_sections = ["main", "menu_networking", "menu_custom"]
+        config_sections = ["main"]
 
         # initialize a config obj for the user's ini config file
         self.user_settings_dict = configobj.ConfigObj(os.path.join(os.environ.get("HOME"), user_config_file))
@@ -245,17 +217,10 @@ class Config:
             print(f"repo_path not set in {user_config_file}")
             sys.exit(1)
 
-        self.get_config_menu_networking_params(**self.user_settings_dict.get("menu_networking", {}))
-        self.menu_custom = ConfigMenuCustom()
-
         # Find the path to the home directory
         self.dir_user_home = os.environ.get("HOME")
 
-        self.default_loopback_interface = self.main.default_loopback_interface
         self.local_user = self.main.local_user
-        self.default_ssh_key = self.main.ssh_key
-        if "/" not in self.default_ssh_key:
-            self.default_ssh_key = os.path.join(self.dir_user_home, ".ssh", self.default_ssh_key)
 
         self.dir_internal_tools = self.main.repo_path
         self.dir_supporting_scripts = os.path.join(self.dir_internal_tools, "scripts")
@@ -279,23 +244,16 @@ class Config:
         self.main = ConfigMain(
             repo_path=kwargs.get("repo_path", None),
             local_user=kwargs.get("local_user", os.environ.get("USER")),
-            ssh_user=kwargs.get("ssh_user", os.environ.get("USER")),
-            ssh_key=kwargs.get("ssh_key", "id_rsa"),
             os_theme=kwargs.get("os_theme", os.popen(
                 'defaults read -g AppleInterfaceStyle 2> /dev/null').read().strip() or "Light"),
-            default_loopback_interface=kwargs.get("default_loopback_interface", "lo0"),
             status_bar_style=kwargs.get("status_bar_style", "logo"),
             status_bar_label=kwargs.get("status_bar_label", "LHUB"),
             status_bar_icon_size=kwargs.get("status_bar_icon_size", "large"),
             status_bar_text_color=kwargs.get("status_bar_text_color", "black"),
             clipboard_update_notifications=Reusable.convert_boolean(
                 kwargs.get("clipboard_update_notifications", False)),
-            debug_output_enabled=Reusable.convert_boolean(kwargs.get("debug_output_enabled", False)),
-            jira_default_prefix=kwargs.get("jira_default_prefix", "<PROJECT_NAME>")
+            debug_output_enabled=Reusable.convert_boolean(kwargs.get("debug_output_enabled", False))
         )
-
-    def get_config_menu_networking_params(self, **kwargs):
-        self.menu_networking = ConfigMenuNetworking(kwargs)
 
 
 @dataclass
@@ -306,12 +264,7 @@ class ActionObject:
 
 
 class Actions:
-    # Static items
-    loopback_interface = None
-
     # Defaults
-    ssh_tunnel_configs = []
-    port_redirect_configs = []
     __reserved_keyboard_shortcuts = {}
 
     def __init__(self, config):
@@ -325,20 +278,12 @@ class Actions:
         self.status = ""
         self.menu_output = ""
 
-        # ToDo FIX THIS: Hostname should be passed through the ini file
-        self.url_jira = r"https://projet.atlassian.net/browse/{}"
-        self.url_uws = r"https://www.ultimatewindowssecurity.com/securitylog/encyclopedia/event.aspx?eventID={}"
-        self.url_nmap = r"https://nmap.org/nsedoc/scripts/{}"
-
         self.config = config
 
         self.set_status_bar_display()
-        self.loopback_interface = self.config.default_loopback_interface
 
         # dict to store all the actions
         self.action_list: Dict[str, ActionObject] = {}
-
-        # ToDo Move all of these to main so it's easier to find going forward!
 
         # ------------ Menu Section: LogicHub ------------ #
 
@@ -381,12 +326,6 @@ class Actions:
         self.make_action("SQL New with Integration Error Check (without table name)",
                          self.logichub_sql_start_with_integ_error_check_without_table_name, alternate=True)
 
-        # ToDo Added on 2021-09-09: delete after a while if no one is using this
-        self.make_action("SQL New with Integration Error Check - OLD VERSION",
-                         self.logichub_sql_start_with_integ_error_check_old_v1)
-        self.make_action("SQL New with Integration Error Check - OLD VERSION (without table name)",
-                         self.logichub_sql_start_with_integ_error_check_without_table_name_old_v1, alternate=True)
-
         self.make_action("SQL Start from spaced strings", self.logichub_sql_start_from_tabs)
         self.make_action("SQL Start from spaced strings (sorted)", self.logichub_sql_start_from_tabs_sorted)
         self.make_action("SQL Start from spaced strings (distinct)", self.logichub_sql_start_from_tabs_distinct)
@@ -423,8 +362,7 @@ class Actions:
         self.make_action("Reformat DSL command [simple]", self.logichub_dsl_reformat_simple, keyboard_shortcut="CmdOrCtrl+shift+d")
         self.make_action("BETA: Reformat DSL command [pretty print SQL]", self.logichub_dsl_reformat_pretty, keyboard_shortcut="CmdOrCtrl+OptionOrAlt+d")
 
-        self.make_action("Integration Error Check AND forceFail (from table name)", self.logichub_dsl_integ_error_check_and_force_fail)
-        self.make_action("Integration Error Check: forceFail and dropColumns only", self.logichub_dsl_integ_error_check_forceFail_and_dropColumns, alternate=True)
+        self.make_action("Integration Error Check: forceFail and dropColumns", self.logichub_dsl_integ_error_check_forceFail_and_dropColumns)
         self.make_action("Add batch info and drop temporary column (from table name)", self.logichub_dsl_batch_info)
 
         self.add_menu_section("Web UI", text_color="blue", menu_depth=1)
@@ -729,6 +667,13 @@ class Actions:
             _input_str = re.sub(r'\r', '', _input_str)
         return _input_str
 
+    def _lh_read_clipboard_for_table_name(self):
+        _input_str = self.read_clipboard()
+        if re.search(r'>*?\s', _input_str):
+            self.display_notification_error("Invalid input; table name cannot contain spaces")
+            exit(1)
+        return _input_str
+
     def write_clipboard(self, text, skip_notification=False):
         clipboard.copy(text)
         if self.config.main.clipboard_update_notifications and not skip_notification:
@@ -818,13 +763,6 @@ class Actions:
     # Section:
     #   LogicHub
     ############################################################################
-
-    def _lh_read_clipboard_for_table_name(self):
-        _input_str = self.read_clipboard()
-        if re.search(r'>*?\s', _input_str):
-            self.display_notification_error("Invalid input; table name cannot contain spaces")
-            exit(1)
-        return _input_str
 
     ############################################################################
     # LogicHub -> LQL & Web UI
@@ -917,13 +855,6 @@ class Actions:
             sql_string = sql_string.replace('___table_name___', table_name)
         return sql_string
 
-    def logichub_sql_start_with_integ_error_check_old_v1(self):
-        _input_str = self._lh_read_clipboard_for_table_name()
-        self.write_clipboard(self._logichub_integ_error_sql(_input_str, version=1))
-
-    def logichub_sql_start_with_integ_error_check_without_table_name_old_v1(self):
-        self.write_clipboard(self._logichub_integ_error_sql(version=1))
-
     def logichub_sql_start_with_integ_error_check(self):
         _input_str = self._lh_read_clipboard_for_table_name()
         self.write_clipboard(self._logichub_integ_error_sql(_input_str))
@@ -980,10 +911,8 @@ class Actions:
         print(json.dumps(dsl_parts, indent=2))
         new_dsl_string = ""
         for part in dsl_parts:
-            sql_part = part["lql"]
+            sql_part = sql = part["lql"]
             alias_part = part["alias"]
-            # part_type = part['type']
-            sql = sql_part
             if part['type'] == 'sql':
                 sql = self.pretty_print_sql(sql_part).replace('\n', '\n    ')
             new_dsl_string += f'[\n    {sql}\n] as {alias_part}\n\n| '
@@ -995,13 +924,7 @@ class Actions:
         """ Integration Error Check: forceFail and dropColumns only """
         _input_str = self._lh_read_clipboard_for_table_name()
         self.write_clipboard(
-            f'[forceFail({_input_str}, "integ_error")] as fail_if_error\n| [dropColumns(fail_if_error, "integ_error", "exit_code", "stdout", "stderr")] as final_output')
-
-    def logichub_dsl_integ_error_check_and_force_fail(self):
-        _input_str = self._lh_read_clipboard_for_table_name()
-        first_table = self._logichub_integ_error_sql(_input_str)
-        self.write_clipboard(
-            f"[{first_table}] as error_check\n| [forceFail(error_check, \"integ_error\")] as fail_if_error\n| [dropColumns(fail_if_error, \"integ_error\", \"exit_code\", \"stdout\", \"stderr\")] as final_output")
+            f'[forceFail({_input_str}, "integ_error")] as t__fail_if_error\n| [dropColumns(t__fail_if_error, "integ_error", "exit_code", "stdout", "stderr")] as t__final_output')
 
     def logichub_dsl_batch_info(self):
         template = r"""[
@@ -1597,7 +1520,6 @@ check_recent_user_activity
 
         :return:
         """
-        # _command = f"apt-get update && apt-get install vim -y && {self.shell_vim_set_both_permanently(return_string=True)} && cd /code && mkdir /code/_orig && cp -p /code/*.* /code/_orig && ls -l"
         _command = rf"""apt-get update && apt-get install vim -y && if [[ -f ~/.vimrc ]]; then sed -E -i".$(date +'%Y%m%d_%H%M%S').bak" '/^ *set *((no)?number|mouse)/d' ~/.vimrc; fi; printf "set mouse-=a\nset number\n" >> ~/.vimrc && cd /code && mkdir /code/_orig && cp -p /code/*.* /code/_orig && ls -l"""
         self.write_clipboard(_command)
 
@@ -1867,16 +1789,6 @@ FROM temp__sizes;""")
         cmd = "{}; {}".format(self.make_backup_command(), self.make_upgrade_command())
         self.write_clipboard(cmd)
 
-    ############################################################################
-    # Section:
-    #   TECH
-    ############################################################################
-
-    ############################################################################
-    # TECH -> JSON
-
-    # JSON: Reusable methods first
-
     @staticmethod
     def _fix_json(json_str):
         def run_fix(obj, step_count=None):
@@ -1924,7 +1836,7 @@ FROM temp__sizes;""")
                 for k in _output:
                     try:
                         temp_map_input_as_strings[json.dumps(k)] = k
-                    except:
+                    except KeyError:
                         temp_map_input_as_strings[str(k)] = k
 
                 # Sort real values by their string versions
