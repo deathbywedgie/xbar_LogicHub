@@ -4,7 +4,7 @@ BitBar/xbar plugin with handy features for frequent LogicHub users
 # Required Software
 * xbar (formerly BitBar): https://github.com/matryer/xbar
 * git (install via brew)
-* Python 3.6+ (must resolve via /usr/local/bin/python3)
+* Python 3.8+ (must resolve via /usr/local/bin/python3)
 
 # Required Python Packages
 The following Python packages are required. (See requirements.txt for exact versions)
@@ -15,8 +15,6 @@ The following Python packages are required. (See requirements.txt for exact vers
 * configobj
 * dataclasses-json
 * psutil
-* json2html
-* selenium (only required if you want URL & HTML screenshot actions to work)
 
 Note: since these packages must be installed for whatever installation of 
 Python3 resolves from /usr/local/bin/python3, you may run into errors when just 
