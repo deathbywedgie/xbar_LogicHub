@@ -845,12 +845,8 @@ class Actions:
         self.write_clipboard(f'SELECT * FROM ')
 
     @staticmethod
-    def _logichub_integ_error_sql(table_name=None, version=2):
-        if version == 1:
-            # Original version
-            sql_string = """SELECT CASE\n  WHEN exit_code = 0 AND GET_JSON_OBJECT(result, "$.has_error") = false THEN ''\n  WHEN exit_code = 241 THEN 'Integration failed: timed out before completing'\n  WHEN COALESCEEMPTY(GET_JSON_OBJECT(result, "$.error"), stderr) != '' THEN PRINTF('Integration failed: %s', COALESCEEMPTY(GET_JSON_OBJECT(result, "$.error"), stderr))\n  ELSE 'Integration appears to have failed: no error provided, but unexpected result: ' || result\nEND AS integ_error,\n*\nFROM ___table_name___\nORDER BY integ_error DESC"""
-        else:
-            sql_string = """SELECT REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(CASE\n  WHEN exit_code = 0 AND GET_JSON_OBJECT(result, '$.has_error') = FALSE THEN ''\n  WHEN exit_code = 241 THEN 'timed out before completing'\n  WHEN COALESCEEMPTY(GET_JSON_OBJECT(result, '$.error'), stderr) != '' THEN COALESCEEMPTY(GET_JSON_OBJECT(result, '$.error'), stderr)\n  ELSE 'no error provided, but unexpected result: ' || result\nEND,\n  '[\\\\s\\\\S]*Traceback[\\\\s\\\\S]+\\n(?: *File .+\\n.+\\n)+', ''),\n  '\\n.*killed because of Timeout.*', ''),\n  '^(?=.)', 'Integration failed: ') AS integ_error,\n*\nFROM ___table_name___\nORDER BY integ_error DESC"""
+    def _logichub_integ_error_sql(table_name=None):
+        sql_string = """SELECT REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(CASE\n  WHEN exit_code = 0 AND GET_JSON_OBJECT(result, '$.has_error') = FALSE THEN ''\n  WHEN exit_code = 241 THEN 'timed out before completing'\n  WHEN COALESCEEMPTY(GET_JSON_OBJECT(result, '$.error'), stderr) != '' THEN COALESCEEMPTY(GET_JSON_OBJECT(result, '$.error'), stderr)\n  WHEN exit_code != 0 THEN PRINTF('Unexpected exit code: %s', exit_code)\n  ELSE 'no error provided, but unexpected result: ' || result\nEND,\n  '[\\\\s\\\\S]*Traceback[\\\\s\\\\S]+\\n(?: *File .+\\n.+\\n)+', ''),\n  '\\n.*killed because of Timeout.*', ''),\n  '^(?=.)', 'Integration failed: ') AS integ_error,\n*\nFROM ___table_name___\nORDER BY integ_error DESC"""
         if table_name:
             sql_string = sql_string.replace('___table_name___', table_name)
         return sql_string
