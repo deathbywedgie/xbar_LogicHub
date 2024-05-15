@@ -397,6 +397,7 @@ class Actions:
         self.add_menu_section("Custom Lists", text_color="blue", menu_depth=1)
 
         self.make_action("appendToList", self.logichub_operator_start_appendToList)
+        self.make_action("appendToListIfNotExist", self.logichub_operator_start_appendToListIfNotExist)
         self.make_action("loadList (with filter)", self.logichub_operator_start_loadList_with_filter)
         self.make_action("loadList (no filter)", self.logichub_operator_start_loadList_without_filter)
         self.make_action("queryFromList", self.logichub_operator_start_queryFromList)
@@ -1350,6 +1351,11 @@ class Actions:
         """Operator Start: appendToList"""
         table_name = self._lh_read_clipboard_for_table_name()
         self.write_clipboard(f'appendToList({table_name}, "LIST_NAME")')
+
+    def logichub_operator_start_appendToListIfNotExist(self):
+        """Operator Start: appendToListIfNotExist"""
+        table_name = self._lh_read_clipboard_for_table_name()
+        self.write_clipboard(f'appendToListIfNotExist({table_name}, "LIST_NAME", ["COLUMN1", "COLUMN2"])')
 
     def logichub_operator_start_loadList_without_filter(self, return_data=False):
         """Operator Start: loadList"""
