@@ -846,7 +846,7 @@ class Actions:
 
     @staticmethod
     def _logichub_integ_error_sql(table_name=None):
-        sql_string = """SELECT REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(CASE\n  WHEN exit_code = 0 AND GET_JSON_OBJECT(result, '$.has_error') = FALSE THEN ''\n  WHEN exit_code = 241 THEN 'timed out before completing'\n  WHEN COALESCEEMPTY(GET_JSON_OBJECT(result, '$.error'), stderr) != '' THEN COALESCEEMPTY(GET_JSON_OBJECT(result, '$.error'), stderr)\n  WHEN exit_code != 0 THEN PRINTF('Unexpected exit code: %s', exit_code)\n  ELSE 'no error provided, but unexpected result: ' || result\nEND,\n  '[\\\\s\\\\S]*Traceback[\\\\s\\\\S]+\\n(?: *File .+\\n.+\\n)+', ''),\n  '\\n.*killed because of Timeout.*', ''),\n  '^(?=.)', 'Integration failed: ') AS integ_error,\n*\nFROM ___table_name___\nORDER BY integ_error DESC"""
+        sql_string = """SELECT REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(CASE\n  WHEN exit_code IN (0, -1975219) AND GET_JSON_OBJECT(result, '$.has_error') = FALSE THEN ''\n  WHEN exit_code = 241 THEN 'timed out before completing'\n  WHEN COALESCEEMPTY(GET_JSON_OBJECT(result, '$.error'), stderr) != '' THEN COALESCEEMPTY(GET_JSON_OBJECT(result, '$.error'), stderr)\n  WHEN exit_code != 0 THEN PRINTF('Unexpected exit code: %s', exit_code)\n  ELSE 'no error provided, but unexpected result: ' || result\nEND,\n  '[\\\\s\\\\S]*Traceback[\\\\s\\\\S]+\\n(?: *File .+\\n.+\\n)+', ''),\n  '\\n.*killed because of Timeout.*', ''),\n  '^(?=.)', 'Integration failed: ') AS integ_error,\n*\nFROM ___table_name___\nORDER BY integ_error DESC"""
         if table_name:
             sql_string = sql_string.replace('___table_name___', table_name)
         return sql_string
