@@ -363,6 +363,8 @@ class Actions:
         self.make_action("BETA: Reformat DSL command [pretty print SQL]", self.logichub_dsl_reformat_pretty, keyboard_shortcut="CmdOrCtrl+OptionOrAlt+d")
 
         self.make_action("Integration Error Check: forceFail and dropColumns", self.logichub_dsl_integ_error_check_forceFail_and_dropColumns)
+        self.make_action("Integration Error Check: forceFail and dropColumns (without result)", self.logichub_dsl_integ_error_check_forceFail_and_dropColumns_without_result, alternate=True)
+
         self.make_action("Add batch info and drop temporary column (from table name)", self.logichub_dsl_batch_info)
 
         self.add_menu_section("Web UI", text_color="blue", menu_depth=1)
@@ -922,6 +924,12 @@ class Actions:
         _input_str = self._lh_read_clipboard_for_table_name()
         self.write_clipboard(
             f'[forceFail({_input_str}, "integ_error")] as t__fail_if_error\n| [dropColumns(t__fail_if_error, "integ_error", "exit_code", "stdout", "stderr")] as t__final_output')
+
+    def logichub_dsl_integ_error_check_forceFail_and_dropColumns_without_result(self):
+        """ Integration Error Check: forceFail and dropColumns only (without result column) """
+        _input_str = self._lh_read_clipboard_for_table_name()
+        self.write_clipboard(
+            f'[forceFail({_input_str}, "integ_error")] as t__fail_if_error\n| [dropColumns(t__fail_if_error, "result", "integ_error", "exit_code", "stdout", "stderr")] as t__final_output')
 
     def logichub_dsl_batch_info(self):
         template = r"""[
